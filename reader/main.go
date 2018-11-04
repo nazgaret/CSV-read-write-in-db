@@ -6,38 +6,68 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
+)
+
+var (
+	end bool
 )
 
 func main() {
+	var gracefulStop = make(chan os.Signal)
+	signal.Notify(gracefulStop, syscall.SIGTERM)
+	signal.Notify(gracefulStop, syscall.SIGINT)
+	go func() {
+		sig := <-gracefulStop
+		fmt.Printf("caught sig: %+v", sig)
+		fmt.Println("Wait to finish processing")
+		for range time.Tick(time.Second) {
+			if end {
+				os.Exit(0)
+			}
+		}
+	}()
+
 	// setup reader
 	csvIn, err := os.Open("./data/data.csv")
 	if err != nil {
 		log.Fatal(err)
 	}
-	r := csv.NewReader(csvIn)
-
-	// handle header
-	rec, err := r.Read()
-	if err != nil {
-		log.Fatal(err)
-	}
-	rec = append(rec, "score")
-
-	callWrite(rec)
-
+	chWrite := processCSV(csvIn)
 	for {
-		rec, err = r.Read()
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			log.Fatal(err)
+		if len(chWrite) > 0 {
+			person := <-chWrite
+			callWrite(person)
+			time.Sleep(time.Second / 10)
 		}
-
-		callWrite(rec)
-
 	}
 }
 func callWrite(person []string) {
+	//send to writer
 	fmt.Println(person)
+}
+
+func processCSV(rc io.Reader) (ch chan []string) {
+	ch = make(chan []string, 10)
+	go func() {
+		r := csv.NewReader(rc)
+		if _, err := r.Read(); err != nil { //read header
+			log.Fatal(err)
+		}
+		defer close(ch)
+		for {
+			rec, err := r.Read()
+			if err != nil {
+				if err == io.EOF {
+					end = true
+					break
+				}
+				log.Fatal(err)
+			}
+			ch <- rec
+		}
+	}()
+	return
 }
