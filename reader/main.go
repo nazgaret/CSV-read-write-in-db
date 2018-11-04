@@ -40,10 +40,10 @@ func main() {
 		if len(chWrite) > 0 {
 			person := <-chWrite
 			callWrite(person)
-			time.Sleep(time.Second / 10)
 		}
 	}
 }
+
 func callWrite(person []string) {
 	//send to writer
 	fmt.Println(person)
