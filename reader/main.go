@@ -16,6 +16,7 @@ var (
 )
 
 func main() {
+	//graceful stop of the app
 	var gracefulStop = make(chan os.Signal)
 	signal.Notify(gracefulStop, syscall.SIGTERM)
 	signal.Notify(gracefulStop, syscall.SIGINT)
@@ -44,11 +45,13 @@ func main() {
 	}
 }
 
+//callWrite send data to writer
 func callWrite(person []string) {
 	//send to writer
 	fmt.Println(person)
 }
 
+//processCSV read csv line by line
 func processCSV(rc io.Reader) (ch chan []string) {
 	ch = make(chan []string, 10)
 	go func() {
