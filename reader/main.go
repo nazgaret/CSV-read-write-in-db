@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,6 +16,7 @@ import (
 
 var (
 	end bool
+	url = "http://localhost:9000"
 )
 
 func main() {
@@ -31,6 +35,7 @@ func main() {
 		}
 	}()
 
+	time.Sleep(time.Second * 5)
 	// setup reader
 	csvIn, err := os.Open("./data/data.csv")
 	if err != nil {
@@ -48,7 +53,17 @@ func main() {
 //callWrite send data to writer
 func callWrite(person []string) {
 	//send to writer
-	fmt.Println(person)
+	data, err := json.Marshal(person)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	r := bytes.NewReader(data)
+	_, err = http.Post(url, "application/json", r)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 }
 
 //processCSV read csv line by line

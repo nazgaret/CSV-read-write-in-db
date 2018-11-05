@@ -1,7 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
 	"strings"
 	"time"
 
@@ -9,17 +13,13 @@ import (
 )
 
 type (
-	personStruct = struct {
-		ID           string ` bson:"id"`
+	//PersonStruct for person DB save
+	PersonStruct = struct {
+		ID           string ` bson:"_id"`
 		Name         string ` bson:"name"`
 		Email        string ` bson:"email"`
 		MobileNumber string ` bson:"mobile_number"`
 	}
-)
-
-const (
-	firstFormat = iota + 1
-	secondFormat
 )
 
 var (
@@ -48,18 +48,42 @@ func init() {
 }
 
 func main() {
-	save := make(chan personStruct)
-	for {
-		if len(save) > 0 {
-			saver(<-save)
-		}
+	http.HandleFunc("/", routerHandler)
+	err := http.ListenAndServe(":9000", nil)
+	if err != nil {
+		log.Fatal("ListenAndServe: ", err)
 	}
 }
 
+//routerHandler handle a rout
+func routerHandler(w http.ResponseWriter, r *http.Request) {
+	personSlice := []string{}
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		fmt.Println("error ioutil.ReadAll : ", err)
+	}
+	defer r.Body.Close()
+	err = json.Unmarshal(body, &personSlice)
+	if err != nil {
+		fmt.Println("error marshal body : ", err, string(body))
+		return
+	}
+
+	saver(
+		PersonStruct{
+			personSlice[0],
+			personSlice[1],
+			personSlice[2],
+			personSlice[3],
+		})
+
+	w.Write([]byte("200"))
+}
+
 //saver write to DB
-func saver(person personStruct) {
+func saver(person PersonStruct) {
 	person.MobileNumber = "+044" + r.Replace(person.MobileNumber)
-	_, err := DB("data").C("persons").Upsert(person.ID, person)
+	_, err := DB("data").C("persons").UpsertId(person.ID, person)
 	if err != nil {
 		fmt.Println("ERROR save to DB", err)
 	}
