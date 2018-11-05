@@ -69,19 +69,19 @@ func routerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	saver(
-		PersonStruct{
-			personSlice[0],
-			personSlice[1],
-			personSlice[2],
-			personSlice[3],
-		})
+	saver(personSlice)
 
-	w.Write([]byte("200"))
+	w.Write([]byte("Thank you!"))
 }
 
 //saver write to DB
-func saver(person PersonStruct) {
+func saver(personSlice []string) {
+	person := PersonStruct{
+		ID:           personSlice[0],
+		Name:         personSlice[1],
+		Email:        personSlice[2],
+		MobileNumber: personSlice[3],
+	}
 	person.MobileNumber = "+044" + r.Replace(person.MobileNumber)
 	_, err := DB("data").C("persons").UpsertId(person.ID, person)
 	if err != nil {
